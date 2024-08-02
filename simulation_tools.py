@@ -33,14 +33,17 @@ def random_sample(df, N):
     return sampled_df
 
 
-def split_sampled_df(sampled_df):
+def split_sampled_df(sampled_df, proportion_split):
     """
-    Split a DataFrame into two equal-sized groups after shuffling its rows.
+    Split a DataFrame into two groups based on a specified proportion after shuffling its rows.
 
     Parameters
     ----------
     sampled_df : pandas DataFrame
         The input DataFrame to be split.
+
+    proportion_split : float, optional
+        The proportion of the data to assign to the first group.
 
     Returns
     -------
@@ -54,12 +57,12 @@ def split_sampled_df(sampled_df):
     # Use the sample method with frac=1 to shuffle all rows of the df
     sampled_df_shuffled = sampled_df.sample(frac=1).reset_index(drop=True)
 
-    # Calculate the number of rows to split it in half
-    half_rows = len(sampled_df_shuffled) // 2
+    # Calculate the number of rows for the first group based on the specified proportion
+    group1_rows = int(len(sampled_df_shuffled) * proportion_split)
 
-    # Split the DataFrame into two halves
-    group1 = sampled_df_shuffled.iloc[:half_rows]
-    group2 = sampled_df_shuffled.iloc[half_rows:]
+    # Split the DataFrame into two groups
+    group1 = sampled_df_shuffled.iloc[:group1_rows]
+    group2 = sampled_df_shuffled.iloc[group1_rows:]
 
     return group1, group2
 
@@ -299,7 +302,7 @@ def run_cwas(group1_conn_stand, group2_modified_stand, group1_site, group2_site)
     return pval_list
 
 
-def run_simulation(conn_df, N, pi, d):
+def run_simulation(conn_df, N, pi, d, proportion_split):
     """
     Simulate a Connectome-Wide Association Study (CWAS) experiment.
 
@@ -317,6 +320,9 @@ def run_simulation(conn_df, N, pi, d):
     d : float
         The effect size used to modify the selected connections.
 
+    proportion_split : float, optional
+        The proportion of the data to assign to the first group.
+
     Returns
     -------
     group1_conn : pandas DataFrame
@@ -333,7 +339,7 @@ def run_simulation(conn_df, N, pi, d):
     sampled_df = random_sample(conn_df, N)
 
     # Step 2: Randomly split N selected subjects into 2 groups
-    group1, group2 = split_sampled_df(sampled_df)
+    group1, group2 = split_sampled_df(sampled_df, proportion_split)
 
     group1_site, group2_site, group1_conn, group2_conn = extract_data(
         sampled_df, group1, group2
@@ -410,7 +416,7 @@ def calculate_sens_spef(group1_conn, connections_to_modify, rejected, q):
     return sensitivity, specificity
 
 
-def run_multiple_simulation(conn_df, N, pi, d, q, num_sample):
+def run_multiple_simulation(conn_df, N, pi, d, proportion_split, q, num_sample):
     sensitivity_list = []
     specificity_list = []
     correct_rejected_count = 0
@@ -420,7 +426,7 @@ def run_multiple_simulation(conn_df, N, pi, d, q, num_sample):
             group1_conn,
             connections_to_modify,
             pval_list,
-        ) = run_simulation(conn_df, N, pi, d)
+        ) = run_simulation(conn_df, N, pi, d, proportion_split)
 
         # Step 5: Apply FDR correction
         rejected, corrected_pval_list = fdrcorrection(pval_list, alpha=q)
