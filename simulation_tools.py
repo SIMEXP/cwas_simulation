@@ -419,7 +419,6 @@ def calculate_sens_spef(group1_conn, connections_to_modify, rejected, q):
 def run_multiple_simulation(conn_df, N, pi, d, proportion_split, q, num_sample):
     sensitivity_list = []
     specificity_list = []
-    correct_rejected_count = 0
     for sample in range(num_sample):
         # Perform steps 1-4 of simulation
         (
@@ -439,13 +438,8 @@ def run_multiple_simulation(conn_df, N, pi, d, proportion_split, q, num_sample):
         sensitivity_list.append(sensitivity)
         specificity_list.append(specificity)
 
-        # If null hypothesis rejected, plus 1
-        if np.any(corrected_pval_list < q):
-            correct_rejected_count += 1
+    # result_summary = (
+    #    f"Estimated mean sensitivity to detect d={d}, with pi={pi}%, q={q} and N={N}: "
+    #    f"{round(mean_sensitivity, 2)}, with mean specificity of {round(mean_specificity, 2)}.")
 
-    result_summary = (
-        f"Estimated mean sensitivity to detect d={d}, with pi={pi}%, q={q} and N={N}: "
-        f"{round(np.mean(sensitivity_list), 2)}, with mean specificity of {round(np.mean(specificity_list), 2)}."
-    )
-
-    return result_summary
+    return np.mean(sensitivity_list), np.mean(specificity_list)
